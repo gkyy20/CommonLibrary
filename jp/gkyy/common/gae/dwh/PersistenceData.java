@@ -5,20 +5,34 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 
-import javax.jdo.annotations.IdentityType;
-import javax.jdo.annotations.PersistenceCapable;
+import javax.servlet.http.HttpServletRequest;
 
-@PersistenceCapable(identityType=IdentityType.APPLICATION ,detachable= "true")
-public abstract class PersistenceData<T> {
+import jp.gkyy.common.gae.exception.GAEException;
+
+public abstract class PersistenceData {
     //パターン定義  
     protected static final String DATE_PATTERN = "yyyy/MM/dd";  
-    protected static final String ITEM_SEP = String.valueOf('\u3000');
-    protected static final String SEP = ";";
+    protected static final String ITEM_SEP = "&";
+    protected static final String SEP = "=";
 
-    abstract public String CreateOutputString();
+    abstract public String createOutputString();
     
-	public void setFromRequest(String input){
+    @SuppressWarnings("unchecked")
+	public void setFromRequest(HttpServletRequest request) throws GAEException{
+    	Map map = request.getParameterMap();
+    	for( Object key : map.keySet()){
+    		if( key instanceof String ){
+    			Object value = map.get(key);
+    			if( value instanceof String[] ){
+    				setValueOnField( (String)key, ((String[])value)[0]);
+    			}
+    		}
+    	}
+    }
+    
+	public void setFromRequest(String input) throws GAEException{
 		String[] values = input.split(ITEM_SEP);
 		for( String value : values ){
 			String[] items = value.split(SEP);
@@ -28,13 +42,14 @@ public abstract class PersistenceData<T> {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	private void setValueOnField(String fieldName, String value){
+	protected void setValueOnField(String fieldName, String value){
+		if( "".equals(value)) return;
 		try {
-			Object objValue = value;
+			Object objValue = null;
 			Class<? extends PersistenceData> c = this.getClass();
-			Field f = c.getField(fieldName);
-			if( "Date".equals(f.getType().getName()) ){
+			Field f = c.getDeclaredField(fieldName);
+			f.setAccessible(true);
+			if( "java.util.Date".equals(f.getType().getName()) ){
 				SimpleDateFormat format = new SimpleDateFormat(DATE_PATTERN);
 				objValue = format.parse(value);
 			} else if ( "long".equals(f.getType().getName()) ){
@@ -43,8 +58,10 @@ public abstract class PersistenceData<T> {
 				objValue = Integer.parseInt(value);
 			} else if ( "double".equals(f.getType().getName()) ){
 				objValue = Double.parseDouble(value);
-			} else if ( "BigDecimal".equals(f.getType().getName()) ){
+			} else if ( "java.math.BigDecimal".equals(f.getType().getName()) ){
 				objValue = new BigDecimal(value);
+			} else {
+				objValue = new String(value);
 			}
 			f.set(this, objValue);
 		} catch (Exception e) {
