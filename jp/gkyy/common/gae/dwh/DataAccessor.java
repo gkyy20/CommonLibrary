@@ -1,7 +1,6 @@
 package jp.gkyy.common.gae.dwh;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 import javax.servlet.http.HttpServlet;
@@ -14,7 +13,6 @@ import jp.gkyy.common.gae.exception.GAEException;
 public class DataAccessor extends HttpServlet {
 	private static final String REF_METHOD = "RefMethod";
 
-	@SuppressWarnings("unchecked")
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 		resp.setContentType("text/plain");
@@ -23,12 +21,10 @@ public class DataAccessor extends HttpServlet {
 		// ÉpÉâÉÅÅ[É^Ç©ÇÁëÄçÏÇéÊìæ
 		try{
 			String mncName = DWHConfigManager.convert(REF_METHOD);
-			IMethodNameConvertor mnc = (IMethodNameConvertor)(Class.forName(mncName).newInstance());
+			IClassNameConvertor mnc = (IClassNameConvertor)(Class.forName(mncName).newInstance());
 			String className  = mnc.getClassName(req.getParameter("method"));
-			String methodName  = mnc.getMethodName(req.getParameter("method"));
 			IDataReferer ope = (IDataReferer)(Class.forName(className).newInstance());
-			Method method = ope.getClass().getMethod(methodName, HttpServletRequest.class );
-			ArrayList<String> ret = (ArrayList<String>)method.invoke(ope, req);
+			ArrayList<String> ret = ope.operate(req);
 			resp.getWriter().println("0");
 			for(int i = 0; i < ret.size(); i++){
 				resp.getWriter().println(ret.get(i));				

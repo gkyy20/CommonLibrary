@@ -1,8 +1,6 @@
 package jp.gkyy.common.gae.dwh;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -21,13 +19,10 @@ public class DataManager extends HttpServlet {
 		// ÉpÉâÉÅÅ[É^Ç©ÇÁëÄçÏÇéÊìæ
 		try{
 			String mncName = DWHConfigManager.convert(MNG_METHOD);
-			IMethodNameConvertor mnc = (IMethodNameConvertor)(Class.forName(mncName).newInstance());
+			IClassNameConvertor mnc = (IClassNameConvertor)(Class.forName(mncName).newInstance());
 			String className  = mnc.getClassName(req.getParameter("method"));
-			String methodName  = mnc.getMethodName(req.getParameter("method"));
-			IDataOperator ope;
-			ope = (IDataOperator)(Class.forName(className).newInstance());
-			Method method = ope.getClass().getMethod(methodName, new Class[]{ HttpServletRequest.class } );
-			method.invoke(ope, new Object[]{ req } );
+			IDataOperator ope = (IDataOperator)(Class.forName(className).newInstance());
+			ope.operate(req);
 			resp.getWriter().println("0");
 		} catch (GAEException e) {
 			long errCode = e.getErrCode() + -10000;
@@ -42,14 +37,10 @@ public class DataManager extends HttpServlet {
 			writeException(resp, e, "-19994");
 		} catch (SecurityException e) {
 			writeException(resp, e, "-19995");
-		} catch (NoSuchMethodException e) {
-			writeException(resp, e, "-19996");
 		} catch (IllegalArgumentException e) {
-			writeException(resp, e, "-19997");
-		} catch (InvocationTargetException e) {
-			writeException(resp, e, "-19998");
+			writeException(resp, e, "-19996");
 		} catch (Exception e) {
-			writeException(resp, e, "-19999");
+			writeException(resp, e, "-19997");
 		}
 	}
 	
